@@ -52,7 +52,7 @@
     <dependency.high-scale-lib.revision>1.1.2</dependency.high-scale-lib.revision>
     <mondrian.version>${project.version}</mondrian.version>
     <oss-licenses.version>${project.version}</oss-licenses.version>
-    <pdi.version>${project.version}</pdi.version>
+    <pdi.version>8.2.0.0-SNAPSHOT</pdi.version>
     <pentaho-reporting.version>${project.version}</pentaho-reporting.version>
     <dependency.simple-jndi.revision>1.0.0</dependency.simple-jndi.revision>
     <dependency.xpp3.revision>1.1.4c</dependency.xpp3.revision>
