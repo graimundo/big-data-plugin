@@ -23,12 +23,23 @@
       <artifactId>pentaho-big-data-kettle-plugins-formats-meta</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <!--
     <dependency>
       <groupId>org.pentaho</groupId>
       <artifactId>pentaho-big-data-impl-shim-format</artifactId>
       <version>${pentaho-hadoop-shims.version}</version>
     </dependency>
-
+    -->
+    <dependency>
+      <groupId>org.pentaho</groupId>
+      <artifactId>pentaho-big-data-api-cluster-service-locator</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.pentaho</groupId>
+      <artifactId>pentaho-big-data-api-format</artifactId>
+      <version>${project.version}</version>
+    </dependency>
     <dependency>
       <groupId>pentaho-kettle</groupId>
       <artifactId>kettle-core</artifactId>
