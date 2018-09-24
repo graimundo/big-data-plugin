@@ -29,7 +29,9 @@ import org.pentaho.di.core.database.DatabaseMeta;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.exception.KettleFileException;
 import org.pentaho.di.core.exception.KettleXMLException;
+import org.pentaho.di.core.injection.Injection;
 import org.pentaho.di.core.row.value.ValueMetaBase;
+import org.pentaho.big.data.kettle.plugins.formats.parquet.ParquetTypeConverter;
 import org.pentaho.di.core.row.value.ValueMetaFactory;
 import org.pentaho.di.core.vfs.AliasedFileObject;
 import org.pentaho.di.core.vfs.KettleVFS;
@@ -40,6 +42,7 @@ import org.pentaho.di.trans.steps.file.BaseFileInputAdditionalField;
 import org.pentaho.di.trans.steps.file.BaseFileInputMeta;
 import org.pentaho.di.workarounds.ResolvableResource;
 import org.pentaho.metastore.api.IMetaStore;
+import org.pentaho.hadoop.shim.api.format.ParquetSpec;
 import org.w3c.dom.Node;
 import java.util.List;
 
@@ -52,10 +55,22 @@ import java.util.List;
 public abstract class ParquetInputMetaBase extends
   BaseFileInputMeta<BaseFileInputAdditionalField, FormatInputFile, ParquetInputField> implements ResolvableResource {
 
+  /** If receiving input rows, should we pass through existing fields? */
+  @Injection( name = "IGNORE_EMPTY_FOLDER" )
+  boolean ignoreEmptyFolder = false;
+
   public ParquetInputMetaBase() {
     additionalOutputFields = new BaseFileInputAdditionalField();
     inputFiles = new FormatInputFile();
     inputFields = new ParquetInputField[ 0 ];
+  }
+
+  public boolean isIgnoreEmptyFolder() {
+    return ignoreEmptyFolder;
+  }
+
+  public void setIgnoreEmptyFolder( boolean ignoreEmptyFolder ) {
+    this.ignoreEmptyFolder = ignoreEmptyFolder;
   }
 
   public String getFilename() {
@@ -89,6 +104,7 @@ public abstract class ParquetInputMetaBase extends
     StringBuilder retval = new StringBuilder( 1500 );
 
     retval.append( "    " ).append( XMLHandler.addTagValue( "passing_through_fields", inputFiles.passingThruFields ) );
+    retval.append( "    " ).append( XMLHandler.addTagValue( "ignore_empty_folder", ignoreEmptyFolder ) );
     retval.append( "    <file>" ).append( Const.CR );
     //we need the equals by size arrays for inputFiles.fileName[i], inputFiles.fileMask[i], inputFiles.fileRequired[i], inputFiles.includeSubFolders[i]
     //to prevent the ArrayIndexOutOfBoundsException
@@ -116,9 +132,13 @@ public abstract class ParquetInputMetaBase extends
       retval.append( "        " ).append( XMLHandler.addTagValue( "path", field.getFormatFieldName() ) );
       retval.append( "        " ).append( XMLHandler.addTagValue( "name", field.getPentahoFieldName() ) );
       retval.append( "        " ).append( XMLHandler.addTagValue( "type", field.getTypeDesc() ) );
-      if ( field.getParquetType() != null ) {
+      ParquetSpec.DataType parquetType = field.getParquetType();
+      if ( parquetType != null  && !parquetType.equals( ParquetSpec.DataType.NULL ) ) {
         retval.append( "        " )
-          .append( XMLHandler.addTagValue( "parquet_type", field.getParquetType().getName() ) );
+          .append( XMLHandler.addTagValue( "parquet_type", parquetType.getName() ) );
+      } else {
+        retval.append( "        " )
+            .append( XMLHandler.addTagValue( "parquet_type", ParquetTypeConverter.convertToParquetType( field.getTypeDesc() ) ) );
       }
       if ( field.getStringFormat() != null ) {
         retval.append( "        " ).append( XMLHandler.addTagValue( "format", field.getStringFormat() ) );
@@ -134,14 +154,17 @@ public abstract class ParquetInputMetaBase extends
   public void saveRep( Repository rep, IMetaStore metaStore, ObjectId id_transformation, ObjectId id_step )
     throws KettleException {
     try {
+      rep.saveStepAttribute( id_transformation, id_step, "ignore_empty_folder", ignoreEmptyFolder );
       rep.saveStepAttribute( id_transformation, id_step, "passing_through_fields", inputFiles.passingThruFields );
-      for ( int i = 0; i < inputFiles.fileName.length; i++ ) {
-        rep.saveStepAttribute( id_transformation, id_step, i, "environment", inputFiles.environment[ i ] );
-        rep.saveStepAttribute( id_transformation, id_step, i, "file_name", inputFiles.fileName[ i ] );
-        rep.saveStepAttribute( id_transformation, id_step, i, "file_mask", inputFiles.fileMask[ i ] );
-        rep.saveStepAttribute( id_transformation, id_step, i, "exclude_file_mask", inputFiles.excludeFileMask[ i ] );
-        rep.saveStepAttribute( id_transformation, id_step, i, "file_required", inputFiles.fileRequired[ i ] );
-        rep.saveStepAttribute( id_transformation, id_step, i, "include_subfolders", inputFiles.includeSubFolders[ i ] );
+      if ( !( inputFiles.fileName.length == 1 && inputFiles.fileName[0].equalsIgnoreCase( "" ) ) ) {
+        for ( int i = 0; i < inputFiles.fileName.length; i++ ) {
+          rep.saveStepAttribute( id_transformation, id_step, i, "environment", inputFiles.environment[i] );
+          rep.saveStepAttribute( id_transformation, id_step, i, "file_name", inputFiles.fileName[i] );
+          rep.saveStepAttribute( id_transformation, id_step, i, "file_mask", inputFiles.fileMask[i] );
+          rep.saveStepAttribute( id_transformation, id_step, i, "exclude_file_mask", inputFiles.excludeFileMask[i] );
+          rep.saveStepAttribute( id_transformation, id_step, i, "file_required", inputFiles.fileRequired[i] );
+          rep.saveStepAttribute( id_transformation, id_step, i, "include_subfolders", inputFiles.includeSubFolders[i] );
+        }
       }
 
       for ( int i = 0; i < inputFields.length; i++ ) {
@@ -150,8 +173,11 @@ public abstract class ParquetInputMetaBase extends
         rep.saveStepAttribute( id_transformation, id_step, i, "path", field.getFormatFieldName() );
         rep.saveStepAttribute( id_transformation, id_step, i, "field_name", field.getPentahoFieldName() );
         rep.saveStepAttribute( id_transformation, id_step, i, "field_type", field.getTypeDesc() );
-        if ( field.getParquetType() != null ) {
-          rep.saveStepAttribute( id_transformation, id_step, i, "parquet_type", field.getParquetType().getName() );
+        ParquetSpec.DataType parquetType = field.getParquetType();
+        if ( parquetType != null  && !parquetType.equals( ParquetSpec.DataType.NULL ) ) {
+          rep.saveStepAttribute( id_transformation, id_step, i, "parquet_type", parquetType.getName() );
+        } else {
+          rep.saveStepAttribute( id_transformation, id_step, i, "parquet_type", ParquetTypeConverter.convertToParquetType( field.getTypeDesc() ) );
         }
         if ( field.getStringFormat() != null ) {
           rep.saveStepAttribute( id_transformation, id_step, i, "format", field.getStringFormat() );
@@ -171,8 +197,11 @@ public abstract class ParquetInputMetaBase extends
 
     String passThroughFields = XMLHandler.getTagValue( stepnode, "passing_through_fields" ) == null ? "false"
       : XMLHandler.getTagValue( stepnode, "passing_through_fields" );
+    String skipIfNoFile = XMLHandler.getTagValue( stepnode, "ignore_empty_folder" ) == null ? "false"
+      : XMLHandler.getTagValue( stepnode, "ignore_empty_folder" );
     allocateFiles( nrfiles );
     inputFiles.passingThruFields = ValueMetaBase.convertStringToBoolean( passThroughFields );
+    ignoreEmptyFolder = ValueMetaBase.convertStringToBoolean( skipIfNoFile );
     for ( int i = 0; i < nrfiles; i++ ) {
       Node envnode = XMLHandler.getSubNodeByNr( filenode, "environment", i );
       Node filenamenode = XMLHandler.getSubNodeByNr( filenode, "name", i );
@@ -196,7 +225,13 @@ public abstract class ParquetInputMetaBase extends
       field.setFormatFieldName( XMLHandler.getTagValue( fnode, "path" ) );
       field.setPentahoFieldName( XMLHandler.getTagValue( fnode, "name" ) );
       field.setPentahoType( ValueMetaFactory.getIdForValueMeta( XMLHandler.getTagValue( fnode, "type" ) ) );
-      field.setParquetType( XMLHandler.getTagValue( fnode, "parquet_type" ) );
+      String parquetType = XMLHandler.getTagValue( fnode, "parquet_type" );
+      if ( parquetType != null && !parquetType.equalsIgnoreCase( "null" ) ) {
+        field.setParquetType( parquetType );
+      } else {
+        field.setParquetType( ParquetTypeConverter.convertToParquetType( field.getPentahoType() ) );
+      }
+
       String stringFormat = XMLHandler.getTagValue( fnode, "format" );
       field.setStringFormat( stringFormat == null ? "" : stringFormat );
       this.inputFields[ i ] = field;
@@ -212,6 +247,7 @@ public abstract class ParquetInputMetaBase extends
       allocateFiles( nrfiles );
 
       inputFiles.passingThruFields = rep.getStepAttributeBoolean( id_step, "passing_through_fields" );
+      ignoreEmptyFolder = rep.getStepAttributeBoolean( id_step, "ignore_empty_folder" );
       for ( int i = 0; i < nrfiles; i++ ) {
         inputFiles.environment[ i ] = rep.getStepAttributeString( id_step, i, "environment" );
         inputFiles.fileName[ i ] = rep.getStepAttributeString( id_step, i, "file_name" );
@@ -234,7 +270,12 @@ public abstract class ParquetInputMetaBase extends
         field.setFormatFieldName( rep.getStepAttributeString( id_step, i, "path" ) );
         field.setPentahoFieldName( rep.getStepAttributeString( id_step, i, "field_name" ) );
         field.setPentahoType( rep.getStepAttributeString( id_step, i, "field_type" ) );
-        field.setParquetType( rep.getStepAttributeString( id_step, i, "parquet_type" ) );
+        String parquetType = rep.getStepAttributeString( id_step, i, "parquet_type" );
+        if ( parquetType != null && !parquetType.equalsIgnoreCase( "null" ) ) {
+          field.setParquetType( parquetType );
+        } else {
+          field.setParquetType( ParquetTypeConverter.convertToParquetType( field.getPentahoType() ) );
+        }
         String stringFormat = rep.getStepAttributeString( id_step, i, "format" );
         field.setStringFormat( stringFormat == null ? "" : stringFormat );
         this.inputFields[ i ] = field;
@@ -253,7 +294,6 @@ public abstract class ParquetInputMetaBase extends
     inputFiles.fileRequired = new String[ nrFiles ];
     inputFiles.includeSubFolders = new String[ nrFiles ];
   }
-
   /**
    * TODO: remove from base
    */

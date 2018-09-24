@@ -79,11 +79,12 @@ import org.w3c.dom.Node;
  * @author Mark Hall (mhall{[at]}pentaho{[dot]}com)
  * @version $Revision$
  */
-@Step( id = "AvroInput", image = "Avro.svg", name = "AvroInput.Name", description = "AvroInput.Description",
+@Step( id = "AvroInput", image = "deprecated.svg", name = "AvroInput.Name", description = "AvroInput.Description",
     // categoryDescription = "i18n:org.pentaho.di.trans.step:BaseStep.Category.BigData",
     categoryDescription = "i18n:org.pentaho.di.trans.step:BaseStep.Category.Deprecated",
     documentationUrl = "http://wiki.pentaho.com/display/EAI/Avro+Input",
-    i18nPackageName = "org.pentaho.di.trans.steps.avroinput" )
+    i18nPackageName = "org.pentaho.di.trans.steps.avroinput",
+    suggestion = "AvroInput.SuggestedStep" )
 @InjectionSupported( localizationPrefix = "AvroInput.Injection.", groups = { "AVRO_FIELDS", "LOOKUP_FIELDS" } )
 public class AvroInputMeta extends BaseStepMeta implements StepMetaInterface {
 
