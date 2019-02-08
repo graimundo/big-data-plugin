@@ -30,16 +30,17 @@ import org.pentaho.big.data.plugins.common.ui.HadoopClusterDelegateImpl;
 import org.pentaho.big.data.plugins.common.ui.NamedClusterDialogImpl;
 import org.pentaho.big.data.plugins.common.ui.NamedClusterWidgetImpl;
 import org.pentaho.di.core.namedcluster.model.NamedCluster;
-import org.pentaho.di.ui.core.namedcluster.HadoopClusterDelegate;
-import org.pentaho.di.ui.core.namedcluster.NamedClusterDialog;
-import org.pentaho.di.ui.core.namedcluster.NamedClusterUIFactory;
-import org.pentaho.di.ui.core.namedcluster.NamedClusterUIHelper;
-import org.pentaho.di.ui.core.namedcluster.NamedClusterWidget;
+import org.pentaho.di.core.plugins.LifecyclePluginType;
+import org.pentaho.di.core.plugins.PluginRegistry;
+import org.pentaho.di.ui.core.namedcluster.*;
+//import org.pentaho.di.ui.core.namedcluster.NamedClusterUIHelper;
 import org.pentaho.di.ui.spoon.Spoon;
 import org.pentaho.runtime.test.RuntimeTester;
 import org.pentaho.runtime.test.action.RuntimeTestActionService;
 import org.pentaho.vfs.ui.CustomVfsUiPanel;
 import org.pentaho.vfs.ui.VfsFileChooserDialog;
+
+import java.lang.reflect.Method;
 
 /**
  * Created by bryan on 8/17/15.
@@ -55,7 +56,21 @@ public class NamedClusterUIFactoryBridgeImpl implements NamedClusterUIFactory {
     this.namedClusterService = namedClusterService;
     this.runtimeTestActionService = runtimeTestActionService;
     this.runtimeTester = runtimeTester;
-    NamedClusterUIHelper.setNamedClusterUIFactory( this );
+    try {
+      Class<?> clazz = PluginRegistry.getInstance().getClass( LifecyclePluginType.class, "HadoopSpoonPlugin", "org.pentaho.di.ui.core.namedcluster.NamedClusterUIHelper" );
+      //clazz.getMethod( "setNamedClusterUIFactory", NamedClusterUIFactory.class).invoke( this );
+      /*
+      for ( Method method : clazz.getMethods() ) {
+        if ( method.getName().equals( "setNamedClusterUIFactory" ) ) {
+          method.invoke( null, (NamedClusterUIFactory) this );
+        }
+      }
+    } catch ( Exception e ) {
+      e.printStackTrace();
+    }
+    */
+      (( NamedClusterUIHelper ) clazz ).setNamedClusterUIFactory( this );
+    //NamedClusterUIHelper.setNamedClusterUIFactory( this );
   }
 
   @Override public NamedClusterWidget createNamedClusterWidget( Composite parent, boolean showLabel ) {
