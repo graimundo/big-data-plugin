@@ -27,9 +27,7 @@ import org.apache.karaf.jaas.config.JaasRealm;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
 import org.pentaho.di.core.Const;
-import org.pentaho.di.core.hadoop.HadoopConfigurationListener;
 import org.pentaho.hadoop.shim.ConfigurationException;
-import org.pentaho.hadoop.shim.HadoopConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,7 +42,7 @@ import java.util.List;
  * Class used to append jaas configuration set via <code>java.security.auth.login.config</code> system property to
  * currently active jaas configuration.
  */
-public class JaasRealmsRegistrar implements HadoopConfigurationListener {
+public class JaasRealmsRegistrar {
   private static final Logger LOGGER = LoggerFactory.getLogger( JaasRealmsRegistrar.class );
   private BundleContext bundleContext;
   private List<ServiceRegistration> realmRegistrations;
@@ -53,7 +51,7 @@ public class JaasRealmsRegistrar implements HadoopConfigurationListener {
     this.bundleContext = bundleContext;
   }
 
-  @Override public void onClassLoaderAvailable( ClassLoader classLoader ) {
+  public void onClassLoaderAvailable( ClassLoader classLoader ) {
     final ClassLoader originalCL = Thread.currentThread().getContextClassLoader();
     try {
       Thread.currentThread().setContextClassLoader( classLoader );
@@ -99,11 +97,8 @@ public class JaasRealmsRegistrar implements HadoopConfigurationListener {
     return configs;
   }
 
-  @Override public void onConfigurationOpen( HadoopConfiguration hadoopConfiguration, boolean defaultConfiguration ) {
-    // Noop
-  }
 
-  public void onConfigurationClose( HadoopConfiguration hadoopConfiguration ) {
+  public void onConfigurationClose( Object hadoopConfiguration ) {
     if ( realmRegistrations != null ) {
       for ( ServiceRegistration realmRegistration : realmRegistrations ) {
         realmRegistration.unregister();
@@ -186,14 +181,9 @@ public class JaasRealmsRegistrar implements HadoopConfigurationListener {
   }
 
   boolean isMaprShimActive(  ) {
-    //try {
-      final String configurationId = "";
-      LOGGER.debug( "Active shim configuration is " + configurationId );
+    final String configurationId = "";
+    LOGGER.debug( "Active shim configuration is " + configurationId );
 
-      return configurationId != null && configurationId.matches( "mapr\\d+" );
-    /*} catch ( ConfigurationException e ) {
-      e.printStackTrace();
-      return false;
-    }*/
+    return configurationId != null && configurationId.matches( "mapr\\d+" );
   }
 }

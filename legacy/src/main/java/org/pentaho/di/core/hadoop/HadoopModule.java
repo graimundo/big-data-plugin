@@ -22,7 +22,6 @@
 package org.pentaho.di.core.hadoop;
 
 import org.pentaho.hadoop.shim.api.cluster.NamedCluster;
-import org.pentaho.hadoop.shim.HadoopConfiguration;
 
 public class HadoopModule {
   private NamedCluster namedCluster;
@@ -33,9 +32,15 @@ public class HadoopModule {
     this.hadoopModuleType = hadoopModuleType;
   }
 
+    /**
+     * @param namedCluster
+     * @param hadoopModuleType
+     * @param hadoopConfiguration
+     * @deprecated
+     */
   @Deprecated
   public HadoopModule( NamedCluster namedCluster, HadoopModule.HadoopModuleType hadoopModuleType,
-                       HadoopConfiguration hadoopConfiguration ) {
+                       Object hadoopConfiguration ) {
     this( namedCluster, hadoopModuleType );
   }
 

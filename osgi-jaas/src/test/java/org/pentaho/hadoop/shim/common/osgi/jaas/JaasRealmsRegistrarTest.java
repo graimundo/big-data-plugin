@@ -20,7 +20,12 @@
 
 package org.pentaho.hadoop.shim.common.osgi.jaas;
 
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.doCallRealMethod;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.isNull;
 
 import java.net.URL;
 import java.util.Dictionary;
@@ -34,9 +39,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
-import org.pentaho.hadoop.shim.ConfigurationException;
-import org.pentaho.hadoop.shim.HadoopConfiguration;
-import org.pentaho.hadoop.shim.spi.HadoopShim;
 
 import com.google.common.base.Strings;
 
@@ -46,11 +48,11 @@ public class JaasRealmsRegistrarTest {
   private JaasRealmsRegistrar testee;
 
   @Before
-  public void setup() throws ConfigurationException {
+  public void setup() {
     jaasConfLocationBackup = System.getProperty( JAAS_CONFIG_PROP_NAME );
     testee = mock( JaasRealmsRegistrar.class );
     doCallRealMethod().when( testee ).onClassLoaderAvailable( any( ClassLoader.class ) );
-    doCallRealMethod().when( testee ).onConfigurationClose( any( HadoopConfiguration.class ) );
+    doCallRealMethod().when( testee ).onConfigurationClose( null );
   }
 
   @After
@@ -63,7 +65,7 @@ public class JaasRealmsRegistrarTest {
   }
 
   @Test
-  public void testIgnoresNotMaprShims() throws ConfigurationException {
+  public void testIgnoresNotMaprShims() {
     BundleContext bundleContext = mock( BundleContext.class );
     doReturn( bundleContext ).when( testee ).getBundleContext();
     testee.onClassLoaderAvailable( mock( ClassLoader.class ) );
@@ -79,23 +81,10 @@ public class JaasRealmsRegistrarTest {
     doReturn( realmRegistration ).when( bundleContext ).registerService( anyString(), any( JaasRealm.class ),
         isNull( Dictionary.class ) );
     doReturn( bundleContext ).when( testee ).getBundleContext();
-    HadoopConfiguration hadoopConf = createHadoopConfiguration( "2.5.1-mapr-1503" );
     testee.onClassLoaderAvailable( mock( ClassLoader.class ) );
-//    verify( bundleContext ).registerService( eq( JaasRealm.class.getCanonicalName() ),
-//        argThat( jaasRealmWithName( "mapr-jaas-config" ) ), isNull( Dictionary.class ) );
-    testee.onConfigurationClose( hadoopConf );
-//    verify( realmRegistration, times( 2 ) ).unregister();
+    testee.onConfigurationClose( null );
   }
 
-  private HadoopConfiguration createHadoopConfiguration( String hadoopVersion ) {
-    HadoopShim shim = mock( HadoopShim.class );
-    when( shim.getHadoopVersion() ).thenReturn( hadoopVersion );
-
-    HadoopConfiguration conf = mock( HadoopConfiguration.class );
-    when( conf.getHadoopShim() ).thenReturn( shim );
-
-    return conf;
-  }
 
   private Matcher jaasRealmWithName( final String realmName ) {
     return new BaseMatcher() {
