@@ -54,6 +54,10 @@
     <feature>shim-common-fragment-V1</feature>
     <bundle>mvn:org.pentaho/pentaho-hadoop-shims-hdp30-driver/9.0.0.0-SNAPSHOT</bundle>
   </feature>
+  <feature name="pentaho-hadoop-shims-mapr60" version="1.0">
+    <feature>shim-common-fragment-V1</feature>
+    <bundle>mvn:org.pentaho/pentaho-hadoop-shims-mapr60-driver/9.0.0.0-SNAPSHOT</bundle>
+  </feature>
 
   <feature name="pentaho-big-data-plugin-tests" version="1.0">
     <bundle>mvn:pentaho/pentaho-big-data-impl-clusterTests/${project.version}</bundle>
@@ -125,6 +129,7 @@
       <feature>pentaho-hadoop-shims-cdh514</feature>
       <feature>pentaho-hadoop-shims-cdh61</feature>
       <feature>pentaho-hadoop-shims-emr521</feature>
+      <feature>pentaho-hadoop-shims-mapr60</feature>
     </conditional>
   </feature>
 </features>
